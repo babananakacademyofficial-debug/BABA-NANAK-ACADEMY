@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Courses | Baba Nanak Academy</title><style>
+:root{--navy:#092a5b;--blue:#1671c9;--gold:#f4b63f;--bg:#f6f9fd;--line:#d8e3ef;--muted:#65758c;--green:#208a62}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(135deg,#eef7ff,#fff);color:#14233b}.wrap{width:min(1000px,92%);margin:35px auto}.brand{text-align:center;color:var(--navy);font-weight:900;font-size:25px}.sub{text-align:center;color:var(--blue);font-size:12px;font-weight:800;letter-spacing:1px;margin:5px 0 25px}.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:0 18px 55px rgba(10,43,88,.1);margin-bottom:20px}h1,h2{color:var(--navy)}h1{margin:0}.intro{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.field{display:grid;gap:6px}.full{grid-column:1/-1}label{font-size:13px;font-weight:800;color:#40516d}input,select{width:100%;padding:13px;border:1px solid var(--line);border-radius:11px;font:inherit;background:#fff}.course-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px}.course{border:1px solid var(--line);border-radius:13px;padding:14px;cursor:pointer}.course:hover,.course.selected{border-color:var(--blue);background:#f1f8ff}.course b{display:block;color:var(--navy)}.course small{color:var(--muted)}.subjects{margin-top:20px;padding:18px;background:#f7faff;border-radius:15px;display:none}.subjects.show{display:block}.subjects ul{margin:8px 0 0;padding-left:20px;color:var(--muted)}.actions{margin-top:22px;display:flex;justify-content:flex-end}.btn{border:0;border-radius:12px;padding:13px 22px;background:var(--navy);color:#fff;font-weight:900;cursor:pointer}.btn:disabled{opacity:.55}.msg{display:none;margin-top:16px;padding:13px;border-radius:11px;font-weight:700}.msg.show{display:block}.success{background:#eaf8f2;color:#176b4b}.error{background:#fff0f3;color:#a12d4d}@media(max-width:650px){.grid,.course-list{grid-template-columns:1fr}.full{grid-column:auto}}
+</style></head><body><div class="wrap"><div class="brand">BABA NANAK ACADEMY ONLINE</div><div class="sub">COURSE SELECTION</div><section class="card"><h1>Select Your Course</h1><p class="intro">Enter your registered Student ID and email, then choose a course. Subjects will appear automatically.</p><form id="courseForm"><div class="grid"><div class="field"><label>Student ID *</label><input id="studentId" required placeholder="Example: BNA2026..."></div><div class="field"><label>Email *</label><input id="email" type="email" required placeholder="Your registered email"></div><div class="field full"><label>Search courses</label><input id="search" placeholder="Search course name..."></div></div><div id="courseList" class="course-list"></div><div id="subjects" class="subjects"><b id="subjectTitle"></b><ul id="subjectList"></ul></div><div class="actions"><button id="submit" class="btn" disabled>Save Course Selection</button></div><div id="msg" class="msg"></div></form></section></div><script>
+const API_URL='https://script.google.com/macros/s/AKfycbwETCN_PWOYtigRvNQrdWjpVwrS1Du4oAOQU6EX3QmyTYKpMdo9gt-rmnFiwbJxQgseKg/exec';
+const courseList=document.getElementById('courseList'),search=document.getElementById('search'),submit=document.getElementById('submit'),subjects=document.getElementById('subjects'),subjectTitle=document.getElementById('subjectTitle'),subjectList=document.getElementById('subjectList'),msg=document.getElementById('msg');let courses=[],selected=null;
+const modules={
+'Computer Fundamentals':['Computer Basics','Operating Systems','Files & Folders','Keyboard & Mouse','Internet Basics'],
+'Basic Computer & Internet':['Computer Basics','Windows','Internet','Email','Online Safety'],
+'MS Office':['MS Word','MS Excel','MS PowerPoint','Office Productivity','Practical Projects'],
+'MS Word':['Word Interface','Formatting','Tables','Mail Merge','Practical Documents'],
+'MS Excel':['Worksheets','Formulas','Functions','Charts','Practical Reports'],
+'MS PowerPoint':['Slides','Themes','Animations','Presentations','Practical Project'],
+'Internet & Email':['Web Browsing','Search','Email','Attachments','Online Safety'],
+'Advanced Excel':['Advanced Formulas','Pivot Tables','Charts','Data Tools','Dashboards'],
+'Tally Prime':['Company Setup','Ledgers','Vouchers','Reports','Practical Accounting'],
+'Tally + GST':['Tally Prime','GST Setup','GST Transactions','Returns','Reports'],
+'Web Designing':['HTML','CSS','Responsive Design','UI Basics','Web Project'],
+'HTML & CSS':['HTML5','CSS3','Layouts','Responsive Design','Website Project'],
+'JavaScript':['Syntax','DOM','Events','Functions','Projects'],
+'WordPress':['Setup','Themes','Plugins','Pages & Posts','Website Project'],
+'Full Stack Web Development':['HTML/CSS','JavaScript','Backend','Database','Full Stack Project'],
+'Python Programming':['Python Basics','Data Types','Functions','OOP','Projects'],
+'C Programming':['Syntax','Variables','Functions','Arrays','Projects'],
+'C++ Programming':['C++ Basics','OOP','STL','Functions','Projects'],
+'Java Programming':['Java Basics','OOP','Collections','Exceptions','Projects'],
+'Database / MySQL':['SQL Basics','Tables','Queries','Joins','Database Project'],
+'Graphic Designing':['Design Principles','Typography','Color','Branding','Design Project'],
+'Video Editing':['Editing Basics','Timeline','Transitions','Audio','Video Project'],
+'Digital Marketing':['SEO','Content','Social Media','Analytics','Campaign Project'],
+'Social Media Marketing':['Platforms','Content Strategy','Ads','Analytics','Campaign Project'],
+'UI/UX Designing':['UX Research','Wireframes','UI Design','Prototyping','Portfolio Project'],
+'Cyber Security Basics':['Security Fundamentals','Threats','Passwords','Network Safety','Security Practices'],
+'Networking Basics':['Networks','IP Addressing','Protocols','LAN/WAN','Troubleshooting'],
+'Computer Hardware & Networking':['Hardware','Assembly','Networking','Troubleshooting','Practical Lab'],
+'Cloud Computing Basics':['Cloud Concepts','Services','Storage','Security','Cloud Project'],
+'AI Tools & Generative AI':['AI Fundamentals','Prompting','Generative Tools','Productivity','AI Project'],
+'AI for Office Work':['AI Productivity','Documents','Spreadsheets','Presentations','Automation'],
+'Data Analytics Basics':['Data Basics','Excel Analytics','Visualization','KPIs','Analytics Project']};
+function defaultSubjects(name){return modules[name]||['Course Fundamentals','Core Concepts','Practical Skills','Assignments','Final Project'];}
+function render(){const q=search.value.toLowerCase();courseList.innerHTML='';courses.filter(c=>c.name.toLowerCase().includes(q)||c.category.toLowerCase().includes(q)).forEach(c=>{const el=document.createElement('div');el.className='course'+(selected&&selected.id===c.id?' selected':'');el.innerHTML='<b>'+c.id+'. '+c.name+'</b><small>'+c.category+'</small>';el.onclick=()=>choose(c);courseList.appendChild(el)})}
+function choose(c){selected=c;subjectTitle.textContent=c.name+' — Subjects';subjectList.innerHTML=defaultSubjects(c.name).map(x=>'<li>'+x+'</li>').join('');subjects.classList.add('show');submit.disabled=false;render()}
+fetch('courses.json').then(r=>r.json()).then(x=>{courses=x;render()}).catch(()=>{msg.className='msg show error';msg.textContent='Course list could not be loaded.'});search.oninput=render;
+document.getElementById('courseForm').onsubmit=async e=>{e.preventDefault();if(!selected)return;submit.disabled=true;submit.textContent='Saving...';msg.className='msg';const data={studentId:document.getElementById('studentId').value.trim(),email:document.getElementById('email').value.trim(),courseId:String(selected.id),course:selected.name,subjects:defaultSubjects(selected.name).join(', ')};try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({event:'enrollment',public:true,data})});const j=await r.json();if(!j.ok)throw new Error(j.message);msg.className='msg show success';msg.textContent='Course selected successfully. Your selection is saved in the academy system.'}catch(err){msg.className='msg show error';msg.textContent=err.message||'Unable to save selection.'}finally{submit.disabled=false;submit.textContent='Save Course Selection'}};
+</script></body></html>
