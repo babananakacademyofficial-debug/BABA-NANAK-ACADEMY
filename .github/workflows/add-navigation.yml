@@ -1,0 +1,46 @@
+name: Add Academy Navigation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  navigation:
+    if: ${{ !contains(github.event.head_commit.message, 'Automated navigation') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add navigation links
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p = Path('index.html')
+          text = p.read_text(encoding='utf-8')
+
+          marker = '<div class="navlinks">'
+          links = '''<a href="index.html">Home</a>
+          <a href="courses.html">Courses</a>
+          <a href="admission.html">Student Registration</a>'''
+
+          if 'href="courses.html">Courses</a>' not in text:
+              if marker not in text:
+                  raise SystemExit('Navigation container not found')
+              text = text.replace(marker, marker + '\n          ' + links, 1)
+              p.write_text(text, encoding='utf-8')
+          else:
+              print('Navigation already present')
+
+      - name: Commit navigation update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Automated navigation update"
+          git push
