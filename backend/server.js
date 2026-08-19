@@ -2,65 +2,157 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import Database from 'better-sqlite3';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import crypto from 'node:crypto';
 
- dotenv.config();
+dotenv.config();
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const db = new Database(process.env.DB_FILE || './academy.db');
+const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_IN_PRODUCTION';
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
+const PASS_PERCENT = Number(process.env.PASS_PERCENT || 40);
 
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 db.exec(`
-  CREATE TABLE IF NOT EXISTS students (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    contact TEXT NOT NULL,
-    course TEXT,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-  );
-  CREATE TABLE IF NOT EXISTS courses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT,
-    fee INTEGER DEFAULT 0,
-    duration TEXT,
-    active INTEGER NOT NULL DEFAULT 1
-  );
+CREATE TABLE IF NOT EXISTS students (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL,
+ phone TEXT, password_hash TEXT NOT NULL, dob TEXT, address TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS courses (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT UNIQUE NOT NULL,
+ description TEXT, fee INTEGER NOT NULL DEFAULT 0, duration TEXT, active INTEGER NOT NULL DEFAULT 1, created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS lessons (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+ title TEXT NOT NULL, video_url TEXT, notes_url TEXT, sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS enrollments (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+ course_id INTEGER NOT NULL REFERENCES courses(id), status TEXT NOT NULL DEFAULT 'pending', enrolled_at TEXT DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE(student_id, course_id)
+);
+CREATE TABLE IF NOT EXISTS payments (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL REFERENCES students(id), course_id INTEGER NOT NULL REFERENCES courses(id),
+ provider TEXT NOT NULL DEFAULT 'razorpay', order_id TEXT, payment_id TEXT, amount INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'created',
+ created_at TEXT DEFAULT CURRENT_TIMESTAMP, verified_at TEXT
+);
+CREATE TABLE IF NOT EXISTS progress (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL REFERENCES students(id), lesson_id INTEGER NOT NULL REFERENCES lessons(id),
+ completed INTEGER DEFAULT 0, updated_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE(student_id, lesson_id)
+);
+CREATE TABLE IF NOT EXISTS exams (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, course_id INTEGER NOT NULL REFERENCES courses(id), title TEXT NOT NULL,
+ duration_minutes INTEGER DEFAULT 30, pass_percent INTEGER DEFAULT 40, active INTEGER DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS questions (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+ question TEXT NOT NULL, option_a TEXT NOT NULL, option_b TEXT NOT NULL, option_c TEXT NOT NULL, option_d TEXT NOT NULL,
+ answer TEXT NOT NULL, marks INTEGER DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS attempts (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL REFERENCES students(id), exam_id INTEGER NOT NULL REFERENCES exams(id),
+ score INTEGER NOT NULL, total INTEGER NOT NULL, percentage REAL NOT NULL, passed INTEGER NOT NULL, started_at TEXT, submitted_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS certificates (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL REFERENCES students(id), course_id INTEGER NOT NULL REFERENCES courses(id),
+ certificate_no TEXT UNIQUE NOT NULL, grade TEXT NOT NULL, issued_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS admins (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, name TEXT NOT NULL, role TEXT DEFAULT 'admin'
+);
 `);
 
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || '*' }));
-app.use(express.json({ limit: '100kb' }));
+function seed() {
+ const count = db.prepare('SELECT COUNT(*) AS c FROM courses').get().c;
+ if (!count) {
+  const addCourse = db.prepare('INSERT INTO courses (name,slug,description,fee,duration) VALUES (?,?,?,?,?)');
+  const a = addCourse.run('Computer Basics & Digital Skills','computer-basics','Beginner-friendly digital literacy course with practical exercises.',1499,'8 Weeks');
+  const b = addCourse.run('English Communication','english-communication','Grammar, vocabulary, speaking practice and confidence building.',1999,'10 Weeks');
+  const c = addCourse.run('General Knowledge & Competitive Prep','gk-competitive','Topic-wise learning, practice tests and exam preparation.',2499,'12 Weeks');
+  const addLesson = db.prepare('INSERT INTO lessons (course_id,title,video_url,notes_url,sort_order) VALUES (?,?,?,?,?)');
+  for (const [id, titles] of [[a.lastInsertRowid,['Introduction','Digital Devices','Internet Safety','Practical Assignment']],[b.lastInsertRowid,['Grammar Basics','Vocabulary Builder','Speaking Practice','Final Revision']],[c.lastInsertRowid,['Indian History','Geography Basics','Current Affairs','Mock Test Preparation']]]) titles.forEach((t,i)=>addLesson.run(id,t,'','',i+1));
+  const addExam = db.prepare('INSERT INTO exams (course_id,title,duration_minutes,pass_percent) VALUES (?,?,?,?)');
+  const exams = [addExam.run(a.lastInsertRowid,'Computer Basics Final Exam',20,40),addExam.run(b.lastInsertRowid,'English Communication Final Exam',20,40),addExam.run(c.lastInsertRowid,'GK & Competitive Final Exam',25,40)];
+  const addQ = db.prepare('INSERT INTO questions (exam_id,question,option_a,option_b,option_c,option_d,answer,marks) VALUES (?,?,?,?,?,?,?,?)');
+  for (const e of exams) { addQ.run(e.lastInsertRowid,'Which device is used to enter text?','Monitor','Keyboard','Speaker','Printer','B',1); addQ.run(e.lastInsertRowid,'Which is a safe password practice?','Use 123456','Share it publicly','Use a unique long password','Use your name only','C',1); addQ.run(e.lastInsertRowid,'What does URL refer to?','A web address','A printer','A file type','A battery','A',1); }
+ }
+ if (!db.prepare('SELECT COUNT(*) AS c FROM admins').get().c) db.prepare('INSERT INTO admins (email,password_hash,name) VALUES (?,?,?)').run(process.env.ADMIN_EMAIL || 'admin@babananakacademy.in',bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'ChangeMe123!',12),'Academy Admin');
+}
+seed();
 
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'Baba Nanak Academy API', time: new Date().toISOString() });
+app.use(cors({origin: FRONTEND_ORIGIN, credentials: true}));
+app.use(express.json({limit:'200kb'}));
+
+const publicStudent = s => ({id:s.id,name:s.name,email:s.email,phone:s.phone,dob:s.dob,address:s.address,created_at:s.created_at});
+function tokenFor(user) { return jwt.sign({sub:user.id,type:user.type,role:user.role || 'student'},JWT_SECRET,{expiresIn:'7d'}); }
+function auth(req,res,next) { try { const h=req.headers.authorization||''; if(!h.startsWith('Bearer ')) throw new Error(); req.user=jwt.verify(h.slice(7),JWT_SECRET); next(); } catch { res.status(401).json({ok:false,message:'Login required.'}); } }
+function adminOnly(req,res,next){ if(req.user?.type!=='admin') return res.status(403).json({ok:false,message:'Admin access required.'}); next(); }
+function studentOnly(req,res,next){ if(req.user?.type!=='student') return res.status(403).json({ok:false,message:'Student access required.'}); next(); }
+
+app.get('/api/health',(_req,res)=>res.json({ok:true,service:'Baba Nanak Academy API',time:new Date().toISOString()}));
+app.get('/api/courses',(_req,res)=>res.json(db.prepare('SELECT id,name,slug,description,fee,duration FROM courses WHERE active=1 ORDER BY id').all()));
+
+app.post('/api/auth/register',(req,res)=>{
+ const name=String(req.body?.name||'').trim(), email=String(req.body?.email||'').trim().toLowerCase(), phone=String(req.body?.phone||'').trim(), password=String(req.body?.password||'');
+ if(!name||!email||password.length<6) return res.status(400).json({ok:false,message:'Name, valid email and password (6+ chars) are required.'});
+ try { const r=db.prepare('INSERT INTO students (name,email,phone,password_hash) VALUES (?,?,?,?)').run(name,email,phone,bcrypt.hashSync(password,12)); const s=db.prepare('SELECT * FROM students WHERE id=?').get(r.lastInsertRowid); res.status(201).json({ok:true,token:tokenFor({id:s.id,type:'student'}),student:publicStudent(s)}); } catch(e){ res.status(409).json({ok:false,message:e.message.includes('UNIQUE')?'Email already registered.':'Registration failed.'}); }
+});
+app.post('/api/auth/login',(req,res)=>{ const email=String(req.body?.email||'').trim().toLowerCase(), password=String(req.body?.password||''); const s=db.prepare('SELECT * FROM students WHERE email=?').get(email); if(!s||!bcrypt.compareSync(password,s.password_hash)) return res.status(401).json({ok:false,message:'Invalid email or password.'}); res.json({ok:true,token:tokenFor({id:s.id,type:'student'}),student:publicStudent(s)}); });
+app.post('/api/admin/login',(req,res)=>{ const email=String(req.body?.email||'').trim().toLowerCase(), password=String(req.body?.password||''); const a=db.prepare('SELECT * FROM admins WHERE email=?').get(email); if(!a||!bcrypt.compareSync(password,a.password_hash)) return res.status(401).json({ok:false,message:'Invalid admin credentials.'}); res.json({ok:true,token:tokenFor({id:a.id,type:'admin',role:a.role}),admin:{id:a.id,name:a.name,email:a.email,role:a.role}}); });
+app.get('/api/me',auth,(req,res)=>{ if(req.user.type==='admin') return res.json({ok:true,admin:db.prepare('SELECT id,name,email,role FROM admins WHERE id=?').get(req.user.sub)}); const s=db.prepare('SELECT * FROM students WHERE id=?').get(req.user.sub); res.json({ok:true,student:publicStudent(s)}); });
+
+app.get('/api/student/dashboard',auth,studentOnly,(req,res)=>{
+ const student=db.prepare('SELECT id,name,email,phone,dob,address,created_at FROM students WHERE id=?').get(req.user.sub);
+ const enrollments=db.prepare(`SELECT e.id,e.status,e.enrolled_at,c.id course_id,c.name,c.slug,c.description,c.duration,c.fee FROM enrollments e JOIN courses c ON c.id=e.course_id WHERE e.student_id=? ORDER BY e.id DESC`).all(req.user.sub);
+ const certificates=db.prepare(`SELECT cf.certificate_no,cf.grade,cf.issued_at,c.name course_name FROM certificates cf JOIN courses c ON c.id=cf.course_id WHERE cf.student_id=? ORDER BY cf.id DESC`).all(req.user.sub);
+ res.json({ok:true,student,enrollments,certificates});
 });
 
-app.get('/api/courses', (_req, res) => {
-  const rows = db.prepare('SELECT id, name, description, fee, duration FROM courses WHERE active = 1 ORDER BY id DESC').all();
-  res.json(rows);
+app.post('/api/enrollments',auth,studentOnly,(req,res)=>{
+ const courseId=Number(req.body?.courseId); const c=db.prepare('SELECT * FROM courses WHERE id=? AND active=1').get(courseId); if(!c) return res.status(404).json({ok:false,message:'Course not found.'});
+ try { const r=db.prepare('INSERT INTO enrollments (student_id,course_id,status) VALUES (?,?,?)').run(req.user.sub,courseId,'pending'); res.status(201).json({ok:true,enrollmentId:r.lastInsertRowid,status:'pending',course:c}); } catch { const e=db.prepare('SELECT * FROM enrollments WHERE student_id=? AND course_id=?').get(req.user.sub,courseId); res.json({ok:true,enrollmentId:e.id,status:e.status,course:c}); }
 });
 
-app.post('/api/students', (req, res) => {
-  const name = String(req.body?.name || '').trim();
-  const contact = String(req.body?.contact || '').trim();
-  const course = String(req.body?.course || '').trim();
-
-  if (!name || !contact) {
-    return res.status(400).json({ ok: false, message: 'Name and email/mobile are required.' });
-  }
-
-  const result = db.prepare(
-    'INSERT INTO students (name, contact, course) VALUES (?, ?, ?)'
-  ).run(name, contact, course || null);
-
-  res.status(201).json({ ok: true, studentId: result.lastInsertRowid, message: 'Registration received.' });
+app.post('/api/payments/create-order',auth,studentOnly,(req,res)=>{
+ const courseId=Number(req.body?.courseId); const c=db.prepare('SELECT * FROM courses WHERE id=? AND active=1').get(courseId); if(!c) return res.status(404).json({ok:false,message:'Course not found.'});
+ const e=db.prepare('SELECT * FROM enrollments WHERE student_id=? AND course_id=?').get(req.user.sub,courseId); if(!e) return res.status(400).json({ok:false,message:'Create enrollment first.'});
+ const orderId=`DEMO_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+ const r=db.prepare('INSERT INTO payments (student_id,course_id,amount,status,order_id) VALUES (?,?,?,?,?)').run(req.user.sub,courseId,c.fee,'created',orderId);
+ res.json({ok:true,paymentDbId:r.lastInsertRowid,orderId,amount:c.fee,currency:'INR',provider:process.env.RAZORPAY_KEY_ID?'razorpay':'demo',message:process.env.RAZORPAY_KEY_ID?'Create the Razorpay checkout on the frontend with this order.':'Demo mode: add Razorpay keys to .env for real payments.'});
+});
+app.post('/api/payments/verify',auth,studentOnly,(req,res)=>{
+ const paymentId=Number(req.body?.paymentDbId), providerId=String(req.body?.paymentId||''); const p=db.prepare('SELECT * FROM payments WHERE id=? AND student_id=?').get(paymentId,req.user.sub); if(!p) return res.status(404).json({ok:false,message:'Payment record not found.'});
+ db.transaction(()=>{ db.prepare('UPDATE payments SET status=?,payment_id=?,verified_at=CURRENT_TIMESTAMP WHERE id=?').run('paid',providerId||'DEMO_PAID',paymentId); db.prepare('UPDATE enrollments SET status=? WHERE student_id=? AND course_id=?').run('active',req.user.sub,p.course_id); })();
+ res.json({ok:true,message:'Payment verified and course activated.'});
 });
 
-app.get('/api/students/:id', (req, res) => {
-  const student = db.prepare('SELECT id, name, contact, course, created_at FROM students WHERE id = ?').get(req.params.id);
-  if (!student) return res.status(404).json({ ok: false, message: 'Student not found.' });
-  res.json(student);
+app.get('/api/student/courses/:courseId/content',auth,studentOnly,(req,res)=>{
+ const courseId=Number(req.params.courseId); const e=db.prepare('SELECT * FROM enrollments WHERE student_id=? AND course_id=? AND status="active"').get(req.user.sub,courseId); if(!e) return res.status(403).json({ok:false,message:'Active enrollment required.'});
+ const course=db.prepare('SELECT id,name,description,duration FROM courses WHERE id=?').get(courseId); const lessons=db.prepare(`SELECT l.*,COALESCE(p.completed,0) completed FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id AND p.student_id=? WHERE l.course_id=? AND l.active=1 ORDER BY l.sort_order`).all(req.user.sub,courseId); const exam=db.prepare('SELECT id,title,duration_minutes,pass_percent FROM exams WHERE course_id=? AND active=1 LIMIT 1').get(courseId); res.json({ok:true,course,lessons,exam});
 });
+app.post('/api/student/progress',auth,studentOnly,(req,res)=>{ const lessonId=Number(req.body?.lessonId); const l=db.prepare('SELECT * FROM lessons WHERE id=?').get(lessonId); if(!l) return res.status(404).json({ok:false,message:'Lesson not found.'}); const e=db.prepare('SELECT * FROM enrollments WHERE student_id=? AND course_id=? AND status="active"').get(req.user.sub,l.course_id); if(!e) return res.status(403).json({ok:false,message:'Active enrollment required.'}); db.prepare(`INSERT INTO progress (student_id,lesson_id,completed) VALUES (?,?,1) ON CONFLICT(student_id,lesson_id) DO UPDATE SET completed=1,updated_at=CURRENT_TIMESTAMP`).run(req.user.sub,lessonId); res.json({ok:true}); });
 
-app.use((_req, res) => res.status(404).json({ ok: false, message: 'API route not found.' }));
+app.get('/api/student/exams/:examId',auth,studentOnly,(req,res)=>{ const exam=db.prepare('SELECT e.*,c.name course_name FROM exams e JOIN courses c ON c.id=e.course_id WHERE e.id=? AND e.active=1').get(req.params.examId); if(!exam) return res.status(404).json({ok:false,message:'Exam not found.'}); const e=db.prepare('SELECT * FROM enrollments WHERE student_id=? AND course_id=? AND status="active"').get(req.user.sub,exam.course_id); if(!e) return res.status(403).json({ok:false,message:'Active enrollment required.'}); const questions=db.prepare('SELECT id,question,option_a,option_b,option_c,option_d,marks FROM questions WHERE exam_id=? ORDER BY id').all(exam.id); res.json({ok:true,exam,questions}); });
+app.post('/api/student/exams/:examId/submit',auth,studentOnly,(req,res)=>{
+ const exam=db.prepare('SELECT * FROM exams WHERE id=? AND active=1').get(req.params.examId); if(!exam) return res.status(404).json({ok:false,message:'Exam not found.'}); const e=db.prepare('SELECT * FROM enrollments WHERE student_id=? AND course_id=? AND status="active"').get(req.user.sub,exam.course_id); if(!e) return res.status(403).json({ok:false,message:'Active enrollment required.'});
+ const questions=db.prepare('SELECT id,answer,marks FROM questions WHERE exam_id=?').all(exam.id); const answers=req.body?.answers||{}; let score=0,total=0; for(const q of questions){ total+=q.marks; if(String(answers[q.id]||'').toUpperCase()===q.answer.toUpperCase()) score+=q.marks; }
+ const percentage=total?Math.round(score/total*10000)/100:0, passed=percentage>=exam.pass_percent?1:0; const r=db.prepare('INSERT INTO attempts (student_id,exam_id,score,total,percentage,passed,started_at) VALUES (?,?,?,?,?,?,?)').run(req.user.sub,exam.id,score,total,percentage,passed,req.body?.startedAt||null);
+ let certificate=null; if(passed){ const courseId=exam.course_id; const existing=db.prepare('SELECT * FROM certificates WHERE student_id=? AND course_id=?').get(req.user.sub,courseId); if(existing) certificate=existing; else { const no=`BNA/${new Date().getFullYear()}/${String(r.lastInsertRowid).padStart(6,'0')}`; const grade=percentage>=80?'A+':percentage>=70?'A':percentage>=60?'B+':percentage>=50?'B':'C'; const cr=db.prepare('INSERT INTO certificates (student_id,course_id,certificate_no,grade) VALUES (?,?,?,?)').run(req.user.sub,courseId,no,grade); certificate=db.prepare('SELECT * FROM certificates WHERE id=?').get(cr.lastInsertRowid); } }
+ res.json({ok:true,result:{attemptId:r.lastInsertRowid,score,total,percentage,passed:!!passed,passPercent:exam.pass_percent},certificate});
+});
+app.get('/api/student/results',auth,studentOnly,(req,res)=>res.json({ok:true,results:db.prepare(`SELECT a.*,e.title,c.name course_name FROM attempts a JOIN exams e ON e.id=a.exam_id JOIN courses c ON c.id=e.course_id WHERE a.student_id=? ORDER BY a.id DESC`).all(req.user.sub)}));
+app.get('/api/student/dmc',auth,studentOnly,(req,res)=>{ const rows=db.prepare(`SELECT s.name,s.email,c.name course_name,a.score,a.total,a.percentage,a.passed,a.submitted_at FROM attempts a JOIN students s ON s.id=a.student_id JOIN exams e ON e.id=a.exam_id JOIN courses c ON c.id=e.course_id WHERE a.student_id=? ORDER BY a.id DESC`).all(req.user.sub); res.json({ok:true,student:db.prepare('SELECT name,email FROM students WHERE id=?').get(req.user.sub),results:rows}); });
 
-app.listen(port, () => console.log(`Baba Nanak Academy API running on port ${port}`));
+app.get('/api/verify/:certificateNo',(_req,res)=>{ const row=db.prepare(`SELECT cf.certificate_no,cf.grade,cf.issued_at,s.name student_name,c.name course_name FROM certificates cf JOIN students s ON s.id=cf.student_id JOIN courses c ON c.id=cf.course_id WHERE cf.certificate_no=?`).get(_req.params.certificateNo); if(!row) return res.status(404).json({ok:false,valid:false,message:'Certificate not found.'}); res.json({ok:true,valid:true,certificate:row}); });
+
+app.get('/api/admin/stats',auth,adminOnly,(_req,res)=>res.json({ok:true,students:db.prepare('SELECT COUNT(*) c FROM students').get().c,courses:db.prepare('SELECT COUNT(*) c FROM courses WHERE active=1').get().c,enrollments:db.prepare('SELECT COUNT(*) c FROM enrollments').get().c,paid:db.prepare("SELECT COALESCE(SUM(amount),0) total FROM payments WHERE status='paid'").get().total,attempts:db.prepare('SELECT COUNT(*) c FROM attempts').get().c,certificates:db.prepare('SELECT COUNT(*) c FROM certificates').get().c}));
+app.get('/api/admin/students',auth,adminOnly,(_req,res)=>res.json({ok:true,students:db.prepare('SELECT id,name,email,phone,created_at FROM students ORDER BY id DESC').all()}));
+app.get('/api/admin/enrollments',auth,adminOnly,(_req,res)=>res.json({ok:true,enrollments:db.prepare(`SELECT e.id,e.status,e.enrolled_at,s.name student_name,s.email,c.name course_name FROM enrollments e JOIN students s ON s.id=e.student_id JOIN courses c ON c.id=e.course_id ORDER BY e.id DESC`).all()}));
+app.get('/api/admin/results',auth,adminOnly,(_req,res)=>res.json({ok:true,results:db.prepare(`SELECT a.*,s.name student_name,s.email,c.name course_name FROM attempts a JOIN students s ON s.id=a.student_id JOIN exams e ON e.id=a.exam_id JOIN courses c ON c.id=e.course_id ORDER BY a.id DESC`).all()}));
+
+app.use((_req,res)=>res.status(404).json({ok:false,message:'API route not found.'}));
+app.use((err,_req,res,_next)=>{console.error(err);res.status(500).json({ok:false,message:'Server error.'});});
+app.listen(port,()=>console.log(`Baba Nanak Academy API running on port ${port}`));
