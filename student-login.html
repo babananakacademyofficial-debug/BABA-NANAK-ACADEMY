@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Student Login | Baba Nanak Academy</title>
+<style>
+:root{--n:#092a5b;--b:#1671c9;--g:#f4b63f;--bg:#f5f9ff;--line:#dce6f2;--mut:#65758c;--ok:#176b4b;--bad:#a12d4d}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:#14233b}.wrap{width:min(920px,92%);margin:40px auto}.brand{text-align:center;color:var(--n);font-weight:900;font-size:26px}.sub{text-align:center;color:var(--b);font-weight:800;margin:5px 0 25px}.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px;box-shadow:0 15px 45px #092a5b14;margin-bottom:18px}.login{max-width:520px;margin:auto}.field{display:grid;gap:6px;margin:14px 0}label{font-weight:800;font-size:13px}input{width:100%;padding:13px;border:1px solid #cbd9e8;border-radius:10px;font:inherit}.btn{border:0;border-radius:11px;padding:13px 20px;background:var(--n);color:#fff;font-weight:900;cursor:pointer;width:100%}.btn:disabled{opacity:.55}.msg{margin-top:15px;padding:12px;border-radius:10px;font-weight:700}.ok{background:#eaf8f2;color:var(--ok)}.err{background:#fff0f3;color:var(--bad)}.hidden{display:none!important}.dash{display:grid;grid-template-columns:1fr 1fr;gap:14px}.item{border:1px solid var(--line);border-radius:13px;padding:15px;background:#f9fbff}.item b{display:block;color:var(--n);margin-bottom:5px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.link{display:inline-block;text-decoration:none;background:var(--g);color:#172a49;padding:11px 15px;border-radius:10px;font-weight:900}.logout{background:#fff0f3;color:var(--bad);border:0;padding:11px 15px;border-radius:10px;font-weight:900;cursor:pointer}@media(max-width:650px){.dash{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">BABA NANAK ACADEMY ONLINE</div>
+  <div class="sub">STUDENT LOGIN • STUDENT ID + REGISTERED EMAIL</div>
+
+  <section id="loginCard" class="card login">
+    <h1>Student Login</h1>
+    <p>Use the Student ID and the same email address used during registration.</p>
+    <form id="loginForm">
+      <div class="field"><label>Student ID *</label><input id="studentId" placeholder="BNA202600001" autocomplete="username" required></div>
+      <div class="field"><label>Registered Email *</label><input id="email" type="email" autocomplete="email" required></div>
+      <button id="loginBtn" class="btn" type="submit">Login →</button>
+    </form>
+    <div id="msg"></div>
+    <div class="actions"><a class="link" href="admission.html">New Student? Register</a></div>
+  </section>
+
+  <section id="dashboard" class="card hidden">
+    <h1>Welcome, <span id="name"></span> 👋</h1>
+    <p>Student account verified successfully.</p>
+    <div class="dash">
+      <div class="item"><b>Student ID</b><span id="showId"></span></div>
+      <div class="item"><b>Email</b><span id="showEmail"></span></div>
+      <div class="item"><b>Mobile</b><span id="showPhone"></span></div>
+      <div class="item"><b>Status</b><span id="showStatus">Registered</span></div>
+    </div>
+    <div class="actions">
+      <a class="link" href="admission.html#courseSection">Course Selection</a>
+      <a class="link" href="courses.html">View Courses</a>
+      <button class="logout" id="logout">Logout</button>
+    </div>
+  </section>
+</div>
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbwETCN_PWOYtigRvNQrdWjpVwrS1Du4oAOQU6EX3QmyTYKpMdo9gt-rmnFiwbJxQgseKg/exec';
+const $=id=>document.getElementById(id);
+const form=$('loginForm'),btn=$('loginBtn'),msg=$('msg');
+async function verify(studentId,email){
+  const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({event:'verifyStudent',data:{studentId:studentId,email:email}})});
+  const t=await r.text();
+  let d;try{d=JSON.parse(t)}catch(e){throw Error('Backend response invalid. Please check Apps Script deployment.');}
+  if(!d.ok)throw Error(d.message||'Student verification failed.');
+  return d;
+}
+form.onsubmit=async e=>{
+  e.preventDefault();
+  const id=String($('studentId').value||'').trim().toUpperCase();
+  const email=String($('email').value||'').trim().toLowerCase();
+  if(!id||!email)return;
+  btn.disabled=true;btn.textContent='Checking...';msg.className='';msg.textContent='';
+  try{
+    await verify(id,email);
+    localStorage.setItem('bna_student_id',id);
+    localStorage.setItem('bna_student_email',email);
+    $('showId').textContent=id;
+    $('showEmail').textContent=email;
+    $('name').textContent='Student';
+    $('showPhone').textContent='Verified account';
+    $('loginCard').classList.add('hidden');
+    $('dashboard').classList.remove('hidden');
+  }catch(err){msg.className='msg err';msg.textContent=err.message||'Login failed.';}
+  finally{btn.disabled=false;btn.textContent='Login →';}
+};
+$('logout').onclick=()=>{localStorage.removeItem('bna_student_id');localStorage.removeItem('bna_student_email');location.reload();};
+(function restore(){const id=localStorage.getItem('bna_student_id'),email=localStorage.getItem('bna_student_email');if(id&&email){verify(id,email).then(()=>{ $('showId').textContent=id;$('showEmail').textContent=email;$('name').textContent='Student';$('showPhone').textContent='Verified account';$('loginCard').classList.add('hidden');$('dashboard').classList.remove('hidden');}).catch(()=>{localStorage.clear();});}})();
+</script>
+</body>
+</html>
