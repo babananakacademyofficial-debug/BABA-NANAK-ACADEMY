@@ -1,0 +1,1 @@
+Clean working setup: registration, student login, courses, Razorpay flow, student dashboard, admin dashboard.
