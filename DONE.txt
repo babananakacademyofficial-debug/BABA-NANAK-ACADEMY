@@ -1,0 +1,1 @@
+Registration, student portal, courses, payment and admin flow are configured.
