@@ -1,1 +1,128 @@
-<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Student Registration - Baba Nanak Academy</title><style>body{font-family:Arial;background:#f5f8fc;margin:0}.box{max-width:600px;margin:40px auto;background:#fff;padding:28px;border-radius:16px;box-shadow:0 5px 25px #0001}input,textarea,button{width:100%;padding:12px;margin:7px 0;border:1px solid #ccd6e3;border-radius:9px;box-sizing:border-box}button{background:#092a5b;color:#fff;border:0;cursor:pointer}.ok{background:#e9fff0;padding:15px;border-radius:10px}.err{background:#fff0f0;padding:15px;border-radius:10px}</style></head><body><div class='box'><h1>Baba Nanak Academy</h1><h2>Student Registration</h2><form onsubmit='register(event)'><input id='name' placeholder='Full Name' required><input id='email' type='email' placeholder='Email' required><input id='phone' placeholder='10-digit Mobile Number' maxlength='10' required><input id='dob' type='date'><textarea id='address' placeholder='Address'></textarea><button>Register Student</button></form><div id='msg'></div></div><script>const API='https://script.google.com/macros/s/AKfycbwETCN_PWOYtigRvNQrdWjpVwrS1Du4oAOQU6EX3QmyTYKpMdo9gt-rmnFiwbJxQgseKg/exec';async function register(e){e.preventDefault();const m=document.getElementById('msg');m.textContent='Registering...';try{const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'register',data:{name:name.value,email:email.value,phone:phone.value,dob:dob.value,address:address.value}})});const x=await r.json();if(!x.ok){m.className='err';m.textContent=x.message;return}m.className='ok';m.innerHTML='Registration successful!<br><b>Student ID: '+x.studentId+'</b><br>Save this ID. <a href="portal.html">Open Student Login</a>';e.target.reset()}catch(err){m.className='err';m.textContent='Connection error: '+err.message}}</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Student Registration - Baba Nanak Academy</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f5f8fc;margin:0;color:#111}
+.box{max-width:600px;margin:40px auto;background:#fff;padding:28px;border-radius:16px;box-shadow:0 5px 25px #0001}
+input,textarea,button{width:100%;padding:12px;margin:7px 0;border:1px solid #ccd6e3;border-radius:9px;box-sizing:border-box;font-size:15px}
+button{background:#092a5b;color:#fff;border:0;cursor:pointer;font-weight:700}
+button:disabled{opacity:.6;cursor:not-allowed}
+.ok{background:#e9fff0;padding:15px;border-radius:10px;margin-top:15px}
+.err{background:#fff0f0;padding:15px;border-radius:10px;margin-top:15px;color:#9b1c1c}
+.info{background:#eef5ff;padding:12px;border-radius:10px;margin-top:15px}
+</style>
+</head>
+<body>
+<div class="box">
+<h1>Baba Nanak Academy</h1>
+<h2>Student Registration</h2>
+
+<form id="registrationForm">
+  <input id="studentName" name="studentName" placeholder="Full Name" autocomplete="name" required>
+  <input id="studentEmail" name="studentEmail" type="email" placeholder="Email" autocomplete="email" required>
+  <input id="studentPhone" name="studentPhone" type="tel" placeholder="10-digit Mobile Number" maxlength="10" autocomplete="tel" required>
+  <input id="studentDob" name="studentDob" type="date">
+  <textarea id="studentAddress" name="studentAddress" placeholder="Address"></textarea>
+  <button id="registerButton" type="submit">Register Student</button>
+</form>
+
+<div id="msg"></div>
+</div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbwETCN_PWOYtigRvNQrdWjpVwrS1Du4oAOQU6EX3QmyTYKpMdo9gt-rmnFiwbJxQgseKg/exec';
+
+const form = document.getElementById('registrationForm');
+const msg = document.getElementById('msg');
+const button = document.getElementById('registerButton');
+
+form.addEventListener('submit', async function(event) {
+  event.preventDefault();
+
+  const name = document.getElementById('studentName').value.trim();
+  const email = document.getElementById('studentEmail').value.trim();
+  const phone = document.getElementById('studentPhone').value.trim();
+  const dob = document.getElementById('studentDob').value;
+  const address = document.getElementById('studentAddress').value.trim();
+
+  if (!name) {
+    showError('Full name is required.');
+    return;
+  }
+
+  if (!email) {
+    showError('Email is required.');
+    return;
+  }
+
+  if (!/^[6-9][0-9]{9}$/.test(phone)) {
+    showError('Please enter a valid 10-digit mobile number.');
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Registering...';
+  msg.className = 'info';
+  msg.textContent = 'Please wait...';
+
+  try {
+    const response = await fetch(API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'registerStudent',
+        data: {
+          name: name,
+          email: email,
+          phone: phone,
+          dob: dob,
+          address: address
+        }
+      })
+    });
+
+    const result = await response.json();
+
+    if (!result.ok) {
+      showError(result.message || 'Registration failed.');
+      return;
+    }
+
+    msg.className = 'ok';
+    msg.innerHTML =
+      'Registration successful!<br>' +
+      '<b>Student ID: ' + escapeHtml(result.studentId || '') + '</b><br>' +
+      'Please save your Student ID.' +
+      '<br><br><a href="portal.html">Open Student Login</a>';
+
+    form.reset();
+
+  } catch (error) {
+    showError('Connection error: ' + error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Register Student';
+  }
+});
+
+function showError(text) {
+  msg.className = 'err';
+  msg.textContent = text;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+</script>
+</body>
+</html>
