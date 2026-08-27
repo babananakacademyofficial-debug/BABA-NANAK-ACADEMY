@@ -1,40 +1,34 @@
 # BABA NANAK ACADEMY ONLINE
 
-Full student lifecycle platform based on the academy blueprint.
+Clean rebuild of the Baba Nanak Academy student website.
 
-## Frontend pages
+## Live frontend
 
-- `index.html` — public academy website
+- `index.html` — academy home
+- `courses.html` — live course catalogue
+- `admission.html` — student registration
 - `portal.html` — student portal
-- `admin.html` — admin dashboard
-- `verify.html` — public certificate verification
+- `admin.html` — admin panel
+- `payment.html` — payment/enrollment test step
+- `verify.html` — certificate verification
+- `certificate.html` — certificate view/print
 
-## Automated workflow
+## Main flow
 
-1. Student registration and login
-2. Course selection
-3. Enrollment
-4. Payment order / verification
-5. Course access
-6. Lesson progress tracking
-7. Timed-style exam delivery
-8. Automatic evaluation
-9. Instant result + pass/fail
-10. DMC result history
-11. Automatic certificate number + grade
-12. Public certificate verification
-13. Admin statistics, students, enrollments and results
+Student Registration → Student ID → Course Selection → Payment/Verification → Enrollment → Results → Certificate
+
+Admin flow:
+
+Admin Login → Students → Payments → Fee Verify → Enrollment → Subject Result → Certificates
 
 ## Backend
 
-Node.js + Express + SQLite + JWT + bcrypt. See `backend/README.md`.
+The existing Google Apps Script endpoint is intentionally not changed by this frontend rebuild. Frontend requests use the deployed academy endpoint already configured in the pages.
 
-## Live deployment architecture
+## Payment
 
-GitHub Pages → static frontend
+Razorpay secrets are not stored in GitHub Pages files. The public frontend only calls the existing server-side payment endpoints.
 
-Node.js host → API + database
+## Deployment
 
-Payment provider → server-side payment verification → automatic enrollment activation
-
-Before accepting real payments, configure the payment provider credentials and its server-side signature/webhook verification. Never put secret keys in frontend files.
+GitHub Pages serves the static frontend from `main`.
