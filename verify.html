@@ -1,66 +1,26 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Certificate Verification | Baba Nanak Academy</title>
-<style>
-body{margin:0;font-family:Inter,system-ui,Arial;background:#f5f8fc;color:#14233b}.wrap{width:min(720px,92%);margin:7vh auto}.card{background:#fff;border:1px solid #dce6f2;border-radius:22px;padding:28px;box-shadow:0 18px 55px #0a2b5d12}.brand{color:#082b5d;font-weight:900;letter-spacing:.5px}.field{display:flex;gap:8px;margin:18px 0}.field input{flex:1;padding:13px;border:1px solid #ccd9e8;border-radius:10px;font:inherit}.btn{padding:13px 17px;border:0;border-radius:10px;background:#082b5d;color:#fff;font-weight:900;cursor:pointer}.btn:disabled{opacity:.6;cursor:wait}.result{padding:18px;border-radius:14px}.ok{border:1px solid #a7dcc8;background:#f4fcf8}.bad{border:1px solid #efb3bf;background:#fff5f7}.row{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid #e5ebf3;padding:10px 0}.muted{color:#66758c;font-size:13px}.marks{width:100%;border-collapse:collapse;margin-top:16px}.marks th,.marks td{padding:10px;border-bottom:1px solid #e5ebf3;text-align:left}.summary{margin-top:16px;padding:14px;background:#f7faff;border-radius:12px}.hidden{display:none}@media(max-width:560px){.field{flex-direction:column}.row{flex-direction:column;gap:4px}}
-</style>
-</head>
-<body>
-<main class="wrap">
-<div class="card">
-<div class="brand">BABA NANAK ACADEMY ONLINE</div>
-<h1>Certificate Verification</h1>
-<p class="muted">Enter the certificate ID printed on the student's certificate. You can also open this page directly with <b>?certificateNo=...</b>.</p>
-<div class="field">
-<input id="no" placeholder="BNA-CERT-2026-00001" autocomplete="off">
-<button id="verifyBtn" class="btn" onclick="verify()">Verify Certificate</button>
-</div>
-<div id="result"></div>
-</div>
-</main>
-<script>
-const API='https://script.google.com/macros/s/AKfycbwETCN_PWOYtigRvNQrdWjpVwrS1Du4oAOQU6EX3QmyTYKpMdo9gt-rmnFiwbJxQgseKg/exec';
-let timeoutId=null;
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Certificate Verification | Baba Nanak Academy</title><style>body{margin:0;font-family:Inter,system-ui,Arial;background:#f5f8fc;color:#14233b}.wrap{width:min(720px,92%);margin:7vh auto}.card{background:#fff;border:1px solid #dce6f2;border-radius:22px;padding:28px;box-shadow:0 18px 55px #0a2b5d12}.brand{color:#082b5d;font-weight:900;letter-spacing:.5px}.field{display:flex;gap:8px;margin:18px 0}.field input{flex:1;padding:13px;border:1px solid #ccd9e8;border-radius:10px;font:inherit}.btn{padding:13px 17px;border:0;border-radius:10px;background:#082b5d;color:#fff;font-weight:900;cursor:pointer}.btn:disabled{opacity:.6;cursor:wait}.result{padding:18px;border-radius:14px}.ok{border:1px solid #a7dcc8;background:#f4fcf8}.bad{border:1px solid #efb3bf;background:#fff5f7}.row{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid #e5ebf3;padding:10px 0}.muted{color:#66758c;font-size:13px}.marks{width:100%;border-collapse:collapse;margin-top:16px}.marks th,.marks td{padding:10px;border-bottom:1px solid #e5ebf3;text-align:left}.summary{margin-top:16px;padding:14px;background:#f7faff;border-radius:12px}@media(max-width:560px){.field{flex-direction:column}.row{flex-direction:column;gap:4px}}
+</style></head><body><main class="wrap"><div class="card"><div class="brand">BABA NANAK ACADEMY ONLINE</div><h1>Certificate Verification</h1><p class="muted">Enter the certificate ID printed on the student's certificate. You can also open this page directly with <b>?certificateNo=...</b>.</p><div class="field"><input id="no" placeholder="BNA-CERT-2026-00001" autocomplete="off"><button id="verifyBtn" class="btn" onclick="verify()">Verify Certificate</button></div><div id="result"></div></div></main><script>
+const API='https://script.google.com/macros/s/AKfycbwETCN_PWOYtigRvNQrdWjpVwrS1Du4oAOQU6EX3QmyTYKpMdo9gt-rmnFiwbJxQgseKg/exec';let timeoutId=null;
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function render(d,no){
- const out=document.getElementById('result');
- if(!d||d.ok===false||d.verified===false){out.innerHTML=`<div class="result bad"><h2>✕ Certificate not found</h2><p class="muted">Certificate ID <b>${esc(no)}</b> was not found in the academy verification records.</p></div>`;return;}
- const subjects=Array.isArray(d.subjects)?d.subjects:[];
- const rows=subjects.map(s=>`<tr><td>${esc(s.subject||s.name||s.subjectId)}</td><td>${esc(s.score)}</td><td>${esc(s.total)}</td><td>${esc(s.result||'')}</td></tr>`).join('');
- out.innerHTML=`<div class="result ok"><h2>✓ VALID CERTIFICATE</h2>
- <div class="row"><b>Student</b><span>${esc(d.name)}</span></div>
- <div class="row"><b>Student ID</b><span>${esc(d.studentId)}</span></div>
- <div class="row"><b>Course</b><span>${esc(d.course||d.courseId)}</span></div>
- <div class="row"><b>Certificate ID</b><span>${esc(d.certificateNo||no)}</span></div>
- <div class="row"><b>Grade</b><span>${esc(d.grade)}</span></div>
- <div class="row"><b>Issued</b><span>${esc(d.issuedAt)}</span></div>
- ${subjects.length?`<table class="marks"><thead><tr><th>Subject</th><th>Marks</th><th>Total</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table>`:''}
- <div class="summary"><b>Total:</b> ${esc(d.totalObtained)} / ${esc(d.totalMarks)} &nbsp; | &nbsp; <b>Percentage:</b> ${esc(d.percentage)}%</div>
- </div>`;
+function pick(obj,...keys){for(const k of keys){if(obj&&obj[k]!==undefined&&obj[k]!==null&&String(obj[k])!=='')return obj[k]}return '';}
+function render(d,no){const out=document.getElementById('result');if(!d||d.ok===false||d.verified===false){out.innerHTML=`<div class="result bad"><h2>✕ Certificate not found</h2><p class="muted">Certificate ID <b>${esc(no)}</b> was not found in the academy verification records.</p></div>`;return}
+ const c=(d.certificate&&typeof d.certificate==='object')?d.certificate:d;
+ const subjects=Array.isArray(d.subjects)?d.subjects:(Array.isArray(d.results)?d.results:(Array.isArray(c.subjects)?c.subjects:[]));
+ const name=pick(c,'name','studentName')||pick(d,'name','studentName');
+ const studentId=pick(c,'studentId','studentID')||pick(d,'studentId','studentID');
+ const course=pick(c,'course','courseName')||pick(d,'course','courseName','courseId');
+ const certificateNo=pick(c,'certificateNo','certificateId')||pick(d,'certificateNo','certificateId')||no;
+ const grade=pick(c,'grade')||pick(d,'grade');
+ const issued=pick(c,'issuedAt','issued','issueDate')||pick(d,'issuedAt','issued','issueDate');
+ let obtained=pick(d,'totalObtained','obtainedMarks')||pick(c,'totalObtained','obtainedMarks');
+ let total=pick(d,'totalMarks','total')||pick(c,'totalMarks','total');
+ let percentage=pick(d,'percentage','percent')||pick(c,'percentage','percent');
+ if(subjects.length){let a=0,b=0;subjects.forEach(x=>{a+=Number(pick(x,'score','marks','obtained')||0);b+=Number(pick(x,'total','maxMarks','maximum')||0)});if(!obtained)obtained=a;if(!total)total=b;if(!percentage&&b)percentage=Math.round(a/b*10000)/100;}
+ const rows=subjects.map(s=>`<tr><td>${esc(pick(s,'subject','name','subjectId'))}</td><td>${esc(pick(s,'score','marks','obtained'))}</td><td>${esc(pick(s,'total','maxMarks','maximum'))}</td><td>${esc(pick(s,'result','status')||'')}</td></tr>`).join('');
+ out.innerHTML=`<div class="result ok"><h2>✓ VALID CERTIFICATE</h2><div class="row"><b>Student</b><span>${esc(name)}</span></div><div class="row"><b>Student ID</b><span>${esc(studentId)}</span></div><div class="row"><b>Course</b><span>${esc(course)}</span></div><div class="row"><b>Certificate ID</b><span>${esc(certificateNo)}</span></div><div class="row"><b>Grade</b><span>${esc(grade)}</span></div><div class="row"><b>Issued</b><span>${esc(issued)}</span></div>${subjects.length?`<table class="marks"><thead><tr><th>Subject</th><th>Marks</th><th>Total</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table>`:''}<div class="summary"><b>Total:</b> ${esc(obtained)} / ${esc(total)} &nbsp; | &nbsp; <b>Percentage:</b> ${esc(percentage)}%</div></div>`;
 }
-function handleCertificateVerification(d){
- clearTimeout(timeoutId);
- document.getElementById('verifyBtn').disabled=false;
- render(d,document.getElementById('no').value.trim());
-}
-function verify(){
- const no=document.getElementById('no').value.trim();
- const out=document.getElementById('result');
- const btn=document.getElementById('verifyBtn');
- if(!no){out.innerHTML='<div class="result bad"><h2>Enter Certificate ID</h2></div>';return;}
- btn.disabled=true;out.innerHTML='<div class="result"><p>Verifying certificate...</p></div>';
- const old=document.getElementById('bnaVerifyScript');if(old)old.remove();
- const s=document.createElement('script');s.id='bnaVerifyScript';
- s.src=API+'?action=verifyCertificate&certificateNo='+encodeURIComponent(no)+'&callback=handleCertificateVerification&_='+Date.now();
- s.onerror=()=>{clearTimeout(timeoutId);btn.disabled=false;out.innerHTML='<div class="result bad"><h2>✕ Verification service unavailable</h2><p class="muted">Please try again after the academy Apps Script deployment is updated.</p></div>';};
- document.body.appendChild(s);
- timeoutId=setTimeout(()=>{if(btn.disabled){btn.disabled=false;out.innerHTML='<div class="result bad"><h2>✕ Verification timed out</h2><p class="muted">Please try again.</p></div>'; }},15000);
-}
-const q=new URLSearchParams(location.search);const initial=q.get('certificateNo')||q.get('certificate')||'';if(initial){document.getElementById('no').value=initial;setTimeout(verify,150);}
-document.getElementById('no').addEventListener('keydown',e=>{if(e.key==='Enter')verify();});
-</script>
-</body>
-</html>
+function handleCertificateVerification(d){clearTimeout(timeoutId);document.getElementById('verifyBtn').disabled=false;render(d,document.getElementById('no').value.trim());}
+function verify(){const no=document.getElementById('no').value.trim(),out=document.getElementById('result'),btn=document.getElementById('verifyBtn');if(!no){out.innerHTML='<div class="result bad"><h2>Enter Certificate ID</h2></div>';return}btn.disabled=true;out.innerHTML='<div class="result"><p>Verifying certificate...</p></div>';const old=document.getElementById('bnaVerifyScript');if(old)old.remove();const s=document.createElement('script');s.id='bnaVerifyScript';s.src=API+'?action=verifyCertificate&certificateNo='+encodeURIComponent(no)+'&callback=handleCertificateVerification&_='+Date.now();s.onerror=()=>{clearTimeout(timeoutId);btn.disabled=false;out.innerHTML='<div class="result bad"><h2>✕ Verification service unavailable</h2><p class="muted">Please try again after the academy Apps Script deployment is updated.</p></div>';};document.body.appendChild(s);timeoutId=setTimeout(()=>{if(btn.disabled){btn.disabled=false;out.innerHTML='<div class="result bad"><h2>✕ Verification timed out</h2><p class="muted">Please try again.</p></div>'; }},15000);}
+const q=new URLSearchParams(location.search),initial=q.get('certificateNo')||q.get('certificate')||'';if(initial){document.getElementById('no').value=initial;setTimeout(verify,150)}document.getElementById('no').addEventListener('keydown',e=>{if(e.key==='Enter')verify});
+</script></body></html>
