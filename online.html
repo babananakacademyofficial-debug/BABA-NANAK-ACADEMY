@@ -1,26 +1,132 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Baba Nanak Academy — Online Student System</title>
-<style>:root{--n:#082b5d;--b:#1674cf;--g:#f4b63f;--bg:#f4f7fb;--line:#dbe5ef;--ok:#176b4b;--bad:#a12d4d}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:#17263d}header{background:var(--n);color:#fff;padding:16px 5%;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}header a{color:#fff;text-decoration:none;font-weight:800;margin-left:12px}.wrap{width:min(1150px,94%);margin:22px auto}.card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:20px;margin:16px 0;box-shadow:0 10px 30px #082b5d0d}.login{max-width:520px;margin:50px auto}.field{margin:10px 0}.field label{display:block;font-weight:800;margin-bottom:5px}.field input{width:100%;padding:12px;border:1px solid #ccd8e5;border-radius:9px;font:inherit}.btn{padding:11px 15px;border:0;border-radius:10px;background:var(--n);color:#fff;font-weight:900;cursor:pointer}.gold{background:var(--g);color:#17263d}.blue{background:var(--b)}.hide{display:none!important}.msg{padding:12px;border-radius:10px;margin-top:10px}.err{background:#fff0f3;color:var(--bad)}.tabs{display:flex;gap:8px;overflow:auto;margin-bottom:14px}.tabs button{white-space:nowrap}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:13px}.tile,.course,.lesson{background:#f9fbff;border:1px solid var(--line);border-radius:13px;padding:16px}.tile b{display:block;color:var(--n);margin-bottom:6px}.course h3{margin:0;color:var(--n)}.fee{font-size:18px;font-weight:900;color:var(--b)}.lesson{margin:10px 0}.lesson h4{margin:0 0 8px}table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid #dce4ec;padding:8px;text-align:left}th{background:#eef5ff}.muted{color:#66758c}.verify{color:var(--b);font-weight:900;text-decoration:none}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e9f8f2;color:var(--ok);font-weight:800;font-size:12px}@media(max-width:600px){header nav{width:100%}header a{margin:0 10px 0 0}.card{padding:15px}table{font-size:12px}}
-</style></head>
-<body><header><b>BABA NANAK ACADEMY ONLINE</b><nav><a href="index.html">Home</a><a href="courses.html">Courses</a><a href="admission.html">Registration</a></nav></header><main class="wrap">
-<section id="login" class="card login"><h1>🎓 Student Login</h1><p class="muted">Student ID + registered email required.</p><form id="loginForm"><div class="field"><label>Student ID</label><input id="sid" placeholder="BNA202600001" required></div><div class="field"><label>Registered Email</label><input id="email" type="email" required></div><button class="btn">LOGIN TO ONLINE SYSTEM</button></form><div id="loginMsg"></div></section>
-<section id="app" class="hide"><div class="card"><div class="grid"><div class="tile"><b>Student</b><span id="sname"></span></div><div class="tile"><b>Student ID</b><span id="showId"></span></div><div class="tile"><b>Fee</b><span>₹0 — DIRECT ONLINE ENROLLMENT</span></div><div class="tile"><b>Status</b><span id="status"></span></div></div><br><button class="btn" id="logout">LOGOUT</button></div>
-<div class="card"><div class="tabs"><button class="btn" onclick="tab('home')">DASHBOARD</button><button class="btn" onclick="tab('courses')">COURSES & FEE</button><button class="btn" onclick="tab('study')">📚 STUDY MATERIAL</button><button class="btn" onclick="tab('mock')">📝 MOCK TEST</button><button class="btn" onclick="tab('exam')">🎓 EXAM</button><button class="btn" onclick="tab('results')">📊 RESULT</button><button class="btn" onclick="tab('cert')">🏆 CERTIFICATE</button></div><div id="view"></div></div></section></main>
-<script>const API='https://script.google.com/macros/s/AKfycbwETCN_PWOYtigRvNQrdWjpVwrS1Du4oAOQU6EX3QmyTYKpMdo9gt-rmnFiwbJxQgseKg/exec';const VERIFY='https://babananakacademyofficial-debug.github.io/BABA-NANAK-ACADEMY/verify.html';const MOCK='mock.html',EXAM='exam.html';const $=id=>document.getElementById(id);let me=null,dash=null,selectedCourse='1111';
-async function api(action,data={}){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,data})});const t=await r.text();try{return JSON.parse(t)}catch(e){throw Error('Server response invalid.')}}function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}function show(id,t,c=''){if($(id)){$(id).className=c?'msg '+c:'msg';$(id).textContent=t}}
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Baba Nanak Academy — Online Student System</title>
+<style>
+:root{--n:#082b5d;--b:#1674cf;--g:#f4b63f;--bg:#f4f7fb;--line:#dbe5ef;--ok:#176b4b;--bad:#a12d4d}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:#17263d}
+header{background:var(--n);color:#fff;padding:16px 5%;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header a{color:#fff;text-decoration:none;font-weight:800;margin-left:12px}.wrap{width:min(1150px,94%);margin:22px auto}
+.card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:20px;margin:16px 0;box-shadow:0 10px 30px #082b5d0d}.login{max-width:520px;margin:50px auto}
+.field{margin:10px 0}.field label{display:block;font-weight:800;margin-bottom:5px}.field input{width:100%;padding:12px;border:1px solid #ccd8e5;border-radius:9px;font:inherit}
+.btn{padding:11px 15px;border:0;border-radius:10px;background:var(--n);color:#fff;font-weight:900;cursor:pointer}.gold{background:var(--g);color:#17263d}.blue{background:var(--b)}
+.hide{display:none!important}.msg{padding:12px;border-radius:10px;margin-top:10px}.err{background:#fff0f3;color:var(--bad)}.ok{background:#e9f8f2;color:var(--ok)}
+.tabs{display:flex;gap:8px;overflow:auto;margin-bottom:14px}.tabs button{white-space:nowrap}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:13px}
+.tile,.course,.lesson{background:#f9fbff;border:1px solid var(--line);border-radius:13px;padding:16px}.tile b{display:block;color:var(--n);margin-bottom:6px}.course h3{margin:0;color:var(--n)}
+.fee{font-size:18px;font-weight:900;color:var(--b)}.lesson{margin:10px 0}.lesson h4{margin:0 0 8px}table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid #dce4ec;padding:8px;text-align:left}th{background:#eef5ff}.muted{color:#66758c}.verify{color:var(--b);font-weight:900;text-decoration:none}
+.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e9f8f2;color:var(--ok);font-weight:800;font-size:12px}
+@media(max-width:600px){header nav{width:100%}header a{margin:0 10px 0 0}.card{padding:15px}table{font-size:12px}}
+</style>
+</head>
+<body>
+<header><b>BABA NANAK ACADEMY ONLINE</b><nav><a href="index.html">Home</a><a href="courses.html">Courses</a><a href="admission.html">Registration</a></nav></header>
+<main class="wrap">
+<section id="login" class="card login">
+<h1>🎓 Student Login</h1><p class="muted">Student ID + registered email required.</p>
+<form id="loginForm">
+<div class="field"><label>Student ID</label><input id="sid" placeholder="BNA202600001" required></div>
+<div class="field"><label>Registered Email</label><input id="email" type="email" required></div>
+<button class="btn" id="loginBtn">LOGIN TO ONLINE SYSTEM</button>
+</form><div id="loginMsg"></div>
+</section>
+
+<section id="app" class="hide">
+<div class="card"><div class="grid">
+<div class="tile"><b>Student</b><span id="sname"></span></div>
+<div class="tile"><b>Student ID</b><span id="showId"></span></div>
+<div class="tile"><b>Fee</b><span>₹0 — DIRECT ONLINE ENROLLMENT</span></div>
+<div class="tile"><b>Status</b><span id="status"></span></div>
+</div><br><button class="btn" id="logout">LOGOUT</button></div>
+
+<div class="card"><div class="tabs">
+<button class="btn" onclick="tab('home')">DASHBOARD</button>
+<button class="btn" onclick="tab('courses')">COURSES & FEE</button>
+<button class="btn" onclick="tab('study')">📚 STUDY MATERIAL</button>
+<button class="btn" onclick="tab('mock')">📝 MOCK TEST</button>
+<button class="btn" onclick="tab('exam')">🎓 EXAM</button>
+<button class="btn" onclick="tab('results')">📊 RESULT</button>
+<button class="btn" onclick="tab('cert')">🏆 CERTIFICATE</button>
+</div><div id="view"></div></div>
+</section>
+</main>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbwETCN_PWOYtigRvNQrdWjpVwrS1Du4oAOQU6EX3QmyTYKpMdo9gt-rmnFiwbJxQgseKg/exec';
+const MOCK='mock.html',EXAM='exam.html';
+const $=id=>document.getElementById(id);
+let me=null,dash={ok:true,enrollments:[],payments:[],results:[],examResults:[],certificates:[],courses:[]},selectedCourse='1111';
+
+async function api(action,data={}){
+ const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,data})});
+ const t=await r.text();
+ try{return JSON.parse(t)}catch(e){throw Error('Server response invalid.')}
+}
+function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
+function msg(id,t,c=''){if($(id)){$(id).className=c?'msg '+c:'msg';$(id).textContent=t}}
 function unique(rows,keyFn){const seen=new Set();return(rows||[]).filter(r=>{const k=keyFn(r);if(seen.has(k))return false;seen.add(k);return true})}
-function cleanEnrollments(rows){const map=new Map();(rows||[]).forEach(r=>{const sid=String(r[1]||'').toUpperCase(),cid=String(r[2]||'');if(!sid||!cid)return;const key=sid+'|'+cid;const old=map.get(key);const subjects=new Set();if(old&&old[4])String(old[4]).split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>subjects.add(x));if(r[4])String(r[4]).split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>subjects.add(x));const copy=(old||r).slice();copy[1]=sid;copy[4]=Array.from(subjects).join(',');map.set(key,copy)});return Array.from(map.values())}
-function cleanCourses(rows){const map=new Map();(rows||[]).forEach(c=>{const id=String(c.id??c[0]??'').trim(),name=String(c.name??c[1]??'').trim();if(!name)return;const key=(id==='1111'||name.toUpperCase()==='ADCA')?'1111':id.toUpperCase()+'|'+name.toUpperCase();if(!map.has(key))map.set(key,{id:id||name,name,fee:0,subjects:String(c.subjects??c[3]??'').trim(),status:String(c.status??c[4]??'Active').trim()})});return Array.from(map.values())}
-function cleanResults(rows){return unique(rows,x=>[String(x[1]||'').toUpperCase(),String(x[3]||''),String(x[5]||'')].join('|'))}function cleanCertificates(rows){return unique(rows,x=>{const no=String(x[5]||'').trim().toUpperCase();return no||[String(x[1]||'').toUpperCase(),String(x[3]||'')].join('|')})}
-async function login(){const id=$('sid').value.trim().toUpperCase(),email=$('email').value.trim().toLowerCase();try{show('loginMsg','Checking student…');const r=await api('verifyStudent',{studentId:id,email});if(!r.ok)throw Error(r.message||'Student verification failed.');me=r.student;sessionStorage.setItem('bna_online_student',JSON.stringify(me));await refresh();$('login').classList.add('hide');$('app').classList.remove('hide');tab('home')}catch(e){show('loginMsg',e.message,'err')}}$('loginForm').onsubmit=e=>{e.preventDefault();login()};$('logout').onclick=()=>{sessionStorage.removeItem('bna_online_student');location.reload()};
-async function refresh(){dash=await api('studentDashboard',me);if(!dash.ok)throw Error(dash.message||'Dashboard unavailable');dash.enrollments=cleanEnrollments(dash.enrollments);dash.courses=cleanCourses(dash.courses);dash.results=cleanResults(dash.results);dash.certificates=cleanCertificates(dash.certificates);dash.payments=unique(dash.payments,x=>JSON.stringify(x));dash.examResults=unique(dash.examResults,x=>[String(x[2]||'').toUpperCase(),String(x[5]||''),String(x[6]||'')].join('|'));$('sname').textContent=me.name||'Student';$('showId').textContent=me.studentId||'';$('status').textContent=me.status||'Registered'}function tab(k){if(k==='home')home();if(k==='courses')courses();if(k==='study')study();if(k==='mock')mock();if(k==='exam')exam();if(k==='results')results();if(k==='cert')cert()}
-function enrollmentTable(){const en=dash.enrollments;return en.length?'<table><tr><th>Course</th><th>Course ID</th><th>Selected Subjects</th><th>Status</th><th>Payment</th></tr>'+en.map(r=>'<tr><td>'+esc(r[3])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[4]||'All course subjects')+'</td><td><span class="pill">'+esc(r[5]||'ACTIVE')+'</span></td><td>₹0 — '+esc(r[6]||'PAID')+'</td></tr>').join('')+'</table>':'<p class="muted">No enrollment records yet.</p>'}
-function paymentTable(){let p=dash.payments;if(!p.length)p=dash.enrollments.map(r=>[new Date(),r[1],r[2],r[3],0,'ZERO-FEE','DIRECT-ENROLLMENT','PAID']);return p.length?'<table><tr><th>Student ID</th><th>Course</th><th>Amount</th><th>Payment ID</th><th>Payment Status</th></tr>'+p.map(r=>'<tr><td>'+esc(r[1])+'</td><td>'+esc(r[3])+'</td><td>₹'+esc(r[4]??0)+'</td><td>'+esc(r[5]||'ZERO-FEE')+'</td><td><span class="pill">'+esc(r[7]||'PAID')+'</span></td></tr>').join('')+'</table>':'<p class="muted">No payment/enrollment record yet.</p>'}
-function home(){const en=dash.enrollments,pa=dash.payments,re=dash.results,ce=dash.certificates;$('view').innerHTML='<h2>📊 Student Dashboard</h2><div class="grid"><div class="tile"><b>My Enrollments</b><span>'+en.length+'</span></div><div class="tile"><b>Payments</b><span>'+(pa.length||en.length)+' record(s)</span></div><div class="tile"><b>Results</b><span>'+re.length+' subject result(s)</span></div><div class="tile"><b>Certificates</b><span>'+ce.length+'</span></div></div><div class="card"><h3>🎓 My Enrollments</h3>'+enrollmentTable()+'</div><div class="card"><h3>💳 My Payments</h3>'+paymentTable()+'</div><div class="card"><h3>📊 Results</h3>'+(re.length?'<p>'+re.length+' subject result(s) available. <button class="btn blue" onclick="results()">VIEW RESULTS</button></p>':'<p class="muted">No records yet.</p>')+'</div><div class="card"><h3>🏆 Certificates</h3>'+(ce.length?'<p>'+ce.length+' certificate(s) available. <button class="btn gold" onclick="cert()">VIEW CERTIFICATE</button></p>':'<p class="muted">No records yet.</p>')+'</div><div class="card"><h3>ONLINE FLOW</h3><p>Registration → Subject Selection ✅ → Final Submit → Enrollment → Study → Mock Test → Official Exam → Result → Certificate → QR Verify</p></div>'}
-function courses(){$('view').innerHTML='<h2>📚 Courses & Fee</h2><p class="muted">All online course fees are currently ₹0 for direct enrollment/testing.</p><div class="grid">'+dash.courses.map(c=>'<div class="course"><h3>'+esc(c.name)+'</h3><p>Course ID: <b>'+esc(c.id)+'</b></p><p class="fee">₹0</p><button class="btn gold" onclick="enroll(\''+esc(c.id)+'\')">ENROLL NOW</button></div>').join('')+'</div>'}
-async function enroll(cid){try{const r=await api('enrollment',{studentId:me.studentId,courseId:cid});if(!r.ok)throw Error(r.message||'Enrollment failed.');selectedCourse=String(cid);await refresh();alert('✓ '+(r.message||'Enrollment successful'));home()}catch(e){alert(e.message)}}function active(cid){return dash.enrollments.some(r=>String(r[2])===String(cid)&&String(r[5]).toUpperCase()==='ACTIVE')}
-function study(){selectedCourse=selectedCourse||'1111';if(!active(selectedCourse)){$('view').innerHTML='<h2>📚 Study Material</h2><div class="msg err">Please enroll in a course first. Course fee: ₹0.</div><button class="btn" onclick="courses()">GO TO COURSES</button>';return}if(selectedCourse!=='1111'){$('view').innerHTML='<h2>📚 Study Material</h2><p>Course <b>'+esc(selectedCourse)+'</b> is enrolled. Study modules will appear here when course material is added.</p>';return}const m=[['Computer Fundamental','Computer basics, operating system, files, folders, hardware and software.'],['Desktop Publishing','DTP concepts, page layout, text formatting, graphics and printing.'],['HTML & C++','HTML structure, tags, forms, basic C++ programming concepts.'],['Tally ERP 9.0','Company creation, ledgers, vouchers, reports and basic accounting.'],['Typing English/Punjabi','Daily typing practice, speed, accuracy and keyboard skills.'],['Windows + Hardware','Windows installation, Ghost, drivers, hardware identification and troubleshooting.'],['Practical + Viva','Lab assignments, practical work and viva-voce preparation.']];$('view').innerHTML='<h2>📚 ADCA Study Material</h2><p class="muted">Course ID 1111 • 7 modules</p>'+m.map((x,i)=>'<div class="lesson"><h4>Module '+(i+1)+': '+esc(x[0])+'</h4><p>'+esc(x[1])+'</p><button class="btn blue" onclick="alert(\'✓ Module '+(i+1)+' marked for study practice.\')">MARK STUDIED</button></div>').join('')}
-function mock(){$('view').innerHTML='<h2>📝 Mock Test</h2><p>Practice only. Mock result is not an official exam result.</p><button class="btn gold" onclick="location.href=\''+MOCK+'\'">OPEN SEPARATE MOCK TEST →</button>'}function exam(){$('view').innerHTML='<h2>🎓 Official Exam</h2><p>Official exam is separate from Mock Test. Exam score is submitted to the existing ExamResults record and then reflected in the official Result flow.</p><button class="btn gold" onclick="location.href=\''+EXAM+'\'">START OFFICIAL EXAM →</button> <button class="btn" onclick="results()">VIEW RESULT</button>'}
-function results(){const r=dash.results;$('view').innerHTML='<h2>📊 My Result</h2>'+(r.length?'<table><tr><th>Subject</th><th>Marks</th><th>Total</th><th>Percentage</th><th>Result</th></tr>'+r.map(x=>'<tr><td>'+esc(x[6])+'</td><td>'+esc(x[7])+'</td><td>'+esc(x[8])+'</td><td>'+esc(x[9])+'%</td><td>'+esc(x[10])+'</td></tr>').join('')+'</table>':'<p class="muted">No subject result uploaded yet. Official exam results will appear here after submission.</p>')}
-function cert(){const r=dash.certificates;$('view').innerHTML='<h2>🏆 My Certificate</h2>'+(r.length?r.map(x=>{const no=x[5]||'',u=VERIFY+'?certificateNo='+encodeURIComponent(no);return '<div class="tile"><b>Certificate No: '+esc(no)+'</b><p>Course: '+esc(x[4])+'</p><p>Grade: <b>'+esc(x[6])+'</b></p><a class="verify" href="'+u+'" target="_blank">🔎 VERIFY CERTIFICATE / QR PAGE →</a></div>'}).join(''):'<p class="muted">Certificate will appear here after result/certificate processing.</p>')}
-(async()=>{try{const x=sessionStorage.getItem('bna_online_student');if(x){me=JSON.parse(x);await refresh();$('login').classList.add('hide');$('app').classList.remove('hide');tab('home')}}catch(e){sessionStorage.removeItem('bna_online_student')}})();</script></body></html>
+function cleanEnrollments(rows){const map=new Map();(rows||[]).forEach(r=>{const sid=String(r[1]??'').trim().toUpperCase(),cid=String(r[2]??'').trim();if(!sid||!cid)return;const key=sid+'|'+cid;const old=map.get(key),copy=(old||r).slice();const subjects=new Set();if(old&&old[4])String(old[4]).split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>subjects.add(x));if(r[4])String(r[4]).split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>subjects.add(x));copy[1]=sid;copy[2]=cid;copy[4]=Array.from(subjects).join(',');map.set(key,copy)});return Array.from(map.values())}
+function cleanCourses(rows){return unique(rows||[],c=>String(c.id??c[0]??'').trim()+'|'+String(c.name??c[1]??'').trim().toUpperCase()).map(c=>({id:String(c.id??c[0]??'').trim(),name:String(c.name??c[1]??'').trim(),fee:0,subjects:String(c.subjects??c[3]??'').trim(),status:String(c.status??c[4]??'Active').trim()})).filter(c=>c.name)}
+function cleanResults(rows){return unique(rows,x=>[String(x[1]??'').toUpperCase(),String(x[3]??''),String(x[5]??'')].join('|'))}
+function cleanCertificates(rows){return unique(rows,x=>String(x[5]??'').trim().toUpperCase()||[String(x[1]??'').toUpperCase(),String(x[3]??'')].join('|'))}
+function normalizeExamResults(items){return (items||[]).map(x=>Array.isArray(x)?x:[x.timestamp,x.examId,x.studentId,x.name,x.email,x.courseId,x.subjectId,x.subject,x.examType,x.score,x.total,x.percentage,x.result,x.submittedAt])}
+
+async function login(){
+ const id=$('sid').value.trim().toUpperCase(),email=$('email').value.trim().toLowerCase();
+ if(!id||!email)return;
+ $('loginBtn').disabled=true;$('loginBtn').textContent='LOGGING IN…';msg('loginMsg','Checking student…');
+ try{
+  const r=await api('verifyStudent',{studentId:id,email});
+  if(!r.ok)throw Error(r.message||'Student verification failed.');
+  me=r.student;sessionStorage.setItem('bna_online_student',JSON.stringify(me));
+  $('sname').textContent=me.name||'Student';$('showId').textContent=me.studentId||id;$('status').textContent=me.status||'Registered';
+  $('login').classList.add('hide');$('app').classList.remove('hide');
+  await refresh(true);tab('home');
+ }catch(e){
+  // Login must never fail just because a legacy Result/ExamResults row is malformed.
+  dash={ok:true,enrollments:[],payments:[],results:[],examResults:[],certificates:[],courses:[]};
+  $('login').classList.add('hide');$('app').classList.remove('hide');
+  $('sname').textContent=me?.name||'Student';$('showId').textContent=me?.studentId||id;$('status').textContent=me?.status||'Registered';
+  tab('home');
+  msg('loginMsg','Student verified. Some older dashboard records need cleanup; login is available.','ok');
+ }
+ finally{$('loginBtn').disabled=false;$('loginBtn').textContent='LOGIN TO ONLINE SYSTEM'}
+}
+$('loginForm').onsubmit=e=>{e.preventDefault();login()};
+$('logout').onclick=()=>{sessionStorage.removeItem('bna_online_student');location.reload()};
+
+async function refresh(silent=false){
+ if(!me)return;
+ try{
+  const r=await api('studentDashboard',me);
+  if(!r.ok)throw Error(r.message||'Dashboard unavailable.');
+  dash=r;
+  dash.enrollments=cleanEnrollments(dash.enrollments);dash.courses=cleanCourses(dash.courses);dash.results=cleanResults(dash.results);dash.certificates=cleanCertificates(dash.certificates);dash.payments=unique(dash.payments||[],x=>JSON.stringify(x));dash.examResults=unique(dash.examResults||[],x=>JSON.stringify(x));
+  $('sname').textContent=me.name||'Student';$('showId').textContent=me.studentId||'';$('status').textContent=me.status||'Registered';
+ }catch(e){
+  if(!silent)msg('view','Dashboard data could not be loaded. You can still open Official Exam and Result.','err');
+  dash=dash&&dash.ok?dash:{ok:true,enrollments:[],payments:[],results:[],examResults:[],certificates:[],courses:[]};
+  try{const c=await api('courses');if(c.ok)dash.courses=cleanCourses(c.courses)}catch(_){ }
+ }
+}
+
+function tab(k){if(k==='home')home();else if(k==='courses')courses();else if(k==='study')study();else if(k==='mock')mock();else if(k==='exam')exam();else if(k==='results')results();else if(k==='cert')cert()}
+function enrollmentTable(){const en=dash.enrollments||[];return en.length?'<table><tr><th>Course</th><th>Course ID</th><th>Selected Subjects</th><th>Status</th><th>Payment</th></tr>'+en.map(r=>'<tr><td>'+esc(r[3])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[4]||'All course subjects')+'</td><td><span class="pill">'+esc(r[5]||'ACTIVE')+'</span></td><td>₹0 — '+esc(r[6]||'PAID')+'</td></tr>').join('')+'</table>':'<p class="muted">No enrollment records loaded.</p>'}
+function home(){const en=dash.enrollments||[],pa=dash.payments||[],re=dash.results||[],ce=dash.certificates||[];$('view').innerHTML='<h2>📊 Student Dashboard</h2><div class="grid"><div class="tile"><b>My Enrollments</b><span>'+en.length+'</span></div><div class="tile"><b>Payments</b><span>'+(pa.length||en.length)+' record(s)</span></div><div class="tile"><b>Results</b><span>'+re.length+' subject result(s)</span></div><div class="tile"><b>Certificates</b><span>'+ce.length+'</span></div></div><div class="card"><h3>🎓 My Enrollments</h3>'+enrollmentTable()+'</div><div class="card"><h3>ONLINE FLOW</h3><p>Registration → Subject Selection → Final Submit → Enrollment → Study → Mock Test → Official Exam → Result → Certificate → QR Verify</p></div>'}
+function courses(){$('view').innerHTML='<h2>📚 Courses & Fee</h2><p class="muted">All online course fees are currently ₹0 for direct enrollment/testing.</p><div class="grid">'+(dash.courses||[]).map(c=>'<div class="course"><h3>'+esc(c.name)+'</h3><p>Course ID: <b>'+esc(c.id)+'</b></p><p class="fee">₹0</p><button class="btn gold" onclick="enroll(\''+esc(c.id)+'\')">ENROLL NOW</button></div>').join('')+'</div>'}
+async function enroll(cid){try{const r=await api('enrollment',{studentId:me.studentId,courseId:cid});if(!r.ok)throw Error(r.message||'Enrollment failed.');selectedCourse=String(cid);await refresh(true);alert('✓ '+(r.message||'Enrollment successful'));home()}catch(e){alert(e.message)}}
+function active(cid){return (dash.enrollments||[]).some(r=>String(r[2])===String(cid)&&String(r[5]).toUpperCase()==='ACTIVE')}
+function study(){$('view').innerHTML='<h2>📚 Study Material</h2><p class="muted">ADCA Course ID 1111 • 7 modules</p>'+[['Computer Fundamental','Computer basics, operating system, files, folders, hardware and software.'],['Desktop Publishing','DTP concepts, page layout, text formatting, graphics and printing.'],['HTML & C++','HTML structure, tags, forms, basic C++ programming concepts.'],['Tally ERP 9.0','Company creation, ledgers, vouchers, reports and basic accounting.'],['Typing English/Punjabi','Daily typing practice, speed, accuracy and keyboard skills.'],['Windows + Hardware','Windows installation, Ghost, drivers, hardware identification and troubleshooting.'],['Practical + Viva','Lab assignments, practical work and viva-voce preparation.']].map((x,i)=>'<div class="lesson"><h4>Module '+(i+1)+': '+esc(x[0])+'</h4><p>'+esc(x[1])+'</p></div>').join('')}
+function mock(){$('view').innerHTML='<h2>📝 Mock Test</h2><p>Practice only. Mock result is not an official exam result.</p><button class="btn gold" onclick="location.href=\''+MOCK+'\'">OPEN SEPARATE MOCK TEST →</button>'}
+function exam(){$('view').innerHTML='<h2>🎓 Official Exam</h2><p>Official exam is separate from Mock Test. Final exam submission is recorded in the official exam flow.</p><button class="btn gold" onclick="location.href=\''+EXAM+'\'">START OFFICIAL EXAM →</button> <button class="btn" onclick="results()">VIEW RESULT</button>'}
+async function results(){
+ let r=dash.results||[];
+ // If dashboard loading was blocked by a legacy row, use the dedicated ExamResults action as a safe fallback.
+ if(!r.length){try{const x=await api('examResults',me);if(x.ok&&Array.isArray(x.results))r=normalizeExamResults(x.results)}catch(_){}}
+ $('view').innerHTML='<h2>📊 My Result</h2>'+(r.length?'<table><tr><th>Subject</th><th>Marks</th><th>Total</th><th>Percentage</th><th>Result</th></tr>'+r.map(x=>{const subject=Array.isArray(x)?(x[7]||x[6]):(x.subject||x.subjectId),score=Array.isArray(x)?x[9]:x.score,total=Array.isArray(x)?x[10]:x.total,p=Array.isArray(x)?x[11]:x.percentage,res=Array.isArray(x)?x[12]:x.result;return '<tr><td>'+esc(subject)+'</td><td>'+esc(score)+'</td><td>'+esc(total)+'</td><td>'+esc(p)+'%</td><td><span class="pill">'+esc(res)+'</span></td></tr>'}).join('')+'</table>':'<p class="muted">No subject result uploaded yet. Official exam results will appear here after submission.</p>')}
+function cert(){const r=dash.certificates||[];$('view').innerHTML='<h2>🏆 Certificate</h2>'+(r.length?'<table><tr><th>Certificate No</th><th>Course</th><th>Grade</th><th>Issued</th><th>Verify</th></tr>'+r.map(x=>'<tr><td>'+esc(x[5])+'</td><td>'+esc(x[4])+'</td><td>'+esc(x[6])+'</td><td>'+esc(x[7])+'</td><td><a class="verify" href="verify.html?certificateNo='+encodeURIComponent(x[5])+'" target="_blank">VERIFY</a></td></tr>').join('')+'</table>':'<p class="muted">No certificate record yet.</p>')}
+
+(function restore(){try{const raw=sessionStorage.getItem('bna_online_student');if(raw){me=JSON.parse(raw);$('login').classList.add('hide');$('app').classList.remove('hide');$('sname').textContent=me.name||'Student';$('showId').textContent=me.studentId||'';$('status').textContent=me.status||'Registered';refresh(true).then(()=>tab('home'))}}catch(e){sessionStorage.removeItem('bna_online_student')}})();
+</script>
+</body></html>
